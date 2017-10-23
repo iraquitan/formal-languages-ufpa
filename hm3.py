@@ -411,7 +411,7 @@ if __name__ == '__main__':
     ex2_5.process_sequence('Xx_xx.Xxx_x.')
     ex2_5.process_sequence('Xx_xx.Xxx_x.___Xx.')
 
-    # Ex 2.6 Phrase sequences w/ one space between ----------------------------
+    # Ex 2.6 Phrase sequences without empty phrases ---------------------------
     ex2_6 = MealyMachine(['x', 'X', '_', '.'], ['x', 'X', '_', '.', ''])
 
     ex2_6.add_state(initial=True)  # q_0
