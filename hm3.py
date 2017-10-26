@@ -179,7 +179,7 @@ class DFA(object):
         for i in range(len(self.states)):
             for j in range(i, len(self.states)):
                 if i != j and (self.states[i], self.states[j]) not in pairs:
-                    pairs.append((self.states[i], self.states[j]))
+                    pairs.append(set([self.states[i], self.states[j]]))
         not_equiv = []
         for i, (q_a, q_b) in enumerate(pairs):
             if ((q_a in self.get_accept_states()
@@ -189,40 +189,44 @@ class DFA(object):
                 not_equiv.append(i)
         equiv = []
         not_chkd = [i for i in range(len(pairs)) if i not in not_equiv]
-        # TODO - Use not_chkd with while loop
-        # @author - iraquitan
-        # @date - 24/10/17
-        # @time - 02:49
+
         ni = 0
         while len(not_chkd) != 0:
-        # for ni in not_chkd:
-            q_a, q_b = pairs[ni]
+            try:
+                q_a, q_b = pairs[not_chkd[ni]]
+            except IndexError:
+                ni = 0
+                q_a, q_b = pairs[not_chkd[ni]]
             cur_pair = (q_a, q_b)
             eq_chk = []
+            eq_chk2 = []
             for t_a, s_a in q_a.transitions:
                 for t_b, s_b in q_b.transitions:
                     if s_a == s_b:
-                        cur_to_pair = (t_a, t_b)
+                        cur_to_pair = set([t_a, t_b])
                         break
                 if t_a == t_b:
                     eq_chk.append(True)
                 else:
                     eq_chk.append(False)
-                if cur_to_pair in not_equiv:
-                    not_equiv.append(cur_pair)
+                if cur_to_pair in [pairs[n] for n in not_equiv]:
+                    not_equiv.append(not_chkd[ni])
+                    not_chkd.remove(not_chkd[ni])
+                    eq_chk2.append(False)
                     break
-                elif cur_to_pair in equiv:
-                    equiv.append(cur_pair)
-                    break
-                else:
-                    i += 1
-            if eq_chk:
-                equiv.append(cur_pair)
-            not_chkd.remove(not_chkd[ni])
-            # ni += 1
+                elif cur_to_pair in [pairs[e] for e in equiv]:
+                    eq_chk2.append(True)
+            if all(eq_chk):
+                equiv.append(not_chkd[ni])
+                not_chkd.remove(not_chkd[ni])
+            elif all(eq_chk2):
+                equiv.append(not_chkd[ni])
+                not_chkd.remove(not_chkd[ni])
+            else:
+                ni += 1
         print('Pairs: {}'.format(pairs))
-        print('Not equivalent states: {}'.format(not_equiv))
-        print('Equivalent states: {}'.format(equiv))
+        print('Not equivalent states: {}'.format([pairs[n] for n in not_equiv]))
+        print('Equivalent states: {}'.format([pairs[e] for e in equiv]))
 
 
 class MealyMachine(DFA):
@@ -318,203 +322,203 @@ class MealyMachine(DFA):
         
 
 if __name__ == '__main__':
-    # Ex 2.1 Remove blanks between words --------------------------------------
-    print('========================Exercício 2.1========================')
-    ex2_1 = MealyMachine(['x', 'X', '_', '.'], ['x', 'X', '_', '.', ''])
-
-    ex2_1.add_state(initial=True)  # q_0
-    ex2_1.add_state()  # q_1
-    ex2_1.add_state()  # q_2
-    ex2_1.add_state(accept=True)  # q_3
-    ex2_1.add_state()  # q_4
-
-    ex2_1.add_transition('q_0', 'q_1', 'x', 'x')
-    ex2_1.add_transition('q_0', 'q_1', 'X', 'X')
-    ex2_1.add_transition('q_0', 'q_4', '_', '_')
-    ex2_1.add_transition('q_1', 'q_1', 'x', 'x')
-    ex2_1.add_transition('q_1', 'q_1', 'X', 'X')
-    ex2_1.add_transition('q_1', 'q_2', '_', '_')
-    ex2_1.add_transition('q_1', 'q_3', '.', '.')
-    ex2_1.add_transition('q_2', 'q_2', '_', '')
-    ex2_1.add_transition('q_2', 'q_1', 'x', 'x')
-    ex2_1.add_transition('q_2', 'q_1', 'X', 'X')
-    ex2_1.add_transition('q_2', 'q_3', '.', '.')
-    ex2_1.add_transition('q_3', 'q_1', 'x', 'x')
-    ex2_1.add_transition('q_3', 'q_1', 'X', 'X')
-    ex2_1.add_transition('q_3', 'q_1', '_', '_')
-    ex2_1.add_transition('q_4', 'q_4', '_', '_')
-    ex2_1.add_transition('q_4', 'q_1', 'x', 'x')
-    ex2_1.add_transition('q_4', 'q_1', 'X', 'X')
-    ex2_1.add_transition('q_4', 'q_3', '.', '.')
-
-    # Ex 2.1 [TEST]
-    # _, out2_1 = ex2_1.process_sequence('x___xxx.')
-    # _, out2_1 = ex2_1.process_sequence('x___xxx__x____xx.')
-    _, out2_1 = ex2_1.process_sequence('_____x___xxx__x____xx____._.xX___x__.')
-
-    # Ex 2.2 Remove blanks from the beginning ---------------------------------
-    print('========================Exercício 2.2========================')
-    ex2_2 = MealyMachine(['x', 'X', '_', '.'], ['x', 'X', '_', '.', ''])
-
-    ex2_2.add_state(initial=True)  # q_0
-    ex2_2.add_state()  # q_1
-    ex2_2.add_state()  # q_2
-    ex2_2.add_state(accept=True)  # q_3
-
-    ex2_2.add_transition('q_0', 'q_1', 'x', 'x')
-    ex2_2.add_transition('q_0', 'q_1', 'X', 'X')
-    ex2_2.add_transition('q_0', 'q_2', '_', '')
-
-    ex2_2.add_transition('q_1', 'q_1', 'x', 'x')
-    ex2_2.add_transition('q_1', 'q_1', 'X', 'X')
-    ex2_2.add_transition('q_1', 'q_1', '_', '_')
-    ex2_2.add_transition('q_1', 'q_3', '.', '.')
-
-    ex2_2.add_transition('q_2', 'q_2', '_', '')
-    ex2_2.add_transition('q_2', 'q_1', 'x', 'x')
-    ex2_2.add_transition('q_2', 'q_1', 'X', 'X')
-    ex2_2.add_transition('q_2', 'q_3', '.', '.')
-
-    ex2_2.add_transition('q_3', 'q_1', 'x', 'x')
-    ex2_2.add_transition('q_3', 'q_1', 'X', 'X')
-    ex2_2.add_transition('q_3', 'q_2', '_', '_')
-
-    # Ex 2.2 [TEST]
-    # _, out2_2 = ex2_2.process_sequence('___xxx.')
-    # _, out2_2 = ex2_2.process_sequence('___xxx__x____xx.')
-    _, out2_2 = ex2_2.process_sequence(out2_1)
-
-    # Ex 2.3 Remove blanks from the end ---------------------------------------
-    print('========================Exercício 2.3========================')
-    ex2_3 = MealyMachine(['x', 'X', '_', '.'], ['x', 'X', '_', '.', ''])
-
-    ex2_3.add_state(initial=True)  # q_0
-    ex2_3.add_state()  # q_1
-    ex2_3.add_state()  # q_2
-    ex2_3.add_state(accept=True)  # q_3
-    ex2_3.add_state(accept=True)  # q_4
-
-    ex2_3.add_transition('q_0', 'q_1', 'x', 'x')
-    ex2_3.add_transition('q_0', 'q_1', 'X', 'X')
-    ex2_3.add_transition('q_0', 'q_1', '_', '_')
-
-    ex2_3.add_transition('q_1', 'q_1', 'x', 'x')
-    ex2_3.add_transition('q_1', 'q_1', 'X', 'X')
-    ex2_3.add_transition('q_1', 'q_2', '_', '')
-    ex2_3.add_transition('q_1', 'q_3', '.', '.')
-
-    ex2_3.add_transition('q_2', 'q_2', '_', '')
-    ex2_3.add_transition('q_2', 'q_4', '.', '.')
-    ex2_3.add_transition('q_2', 'q_1', 'x', '_x')
-    ex2_3.add_transition('q_2', 'q_1', 'X', '_X')
-
-    ex2_3.add_transition('q_3', 'q_1', 'x', 'x')
-    ex2_3.add_transition('q_3', 'q_1', 'X', 'X')
-    ex2_3.add_transition('q_3', 'q_2', '_', '_')
-    ex2_3.add_transition('q_3', 'q_4', '.', '.')
-
-    ex2_3.add_transition('q_4', 'q_1', 'x', 'x')
-    ex2_3.add_transition('q_4', 'q_1', 'X', 'X')
-    ex2_3.add_transition('q_4', 'q_3', '_', '_')
-
-    # Ex 2.3 [TEST]
-    # _, out2_3 = ex2_3.process_sequence('x_xxxx__.')
-    _, out2_3 = ex2_3.process_sequence(out2_2)
-
-    # Ex 2.4 Title input  -----------------------------------------------------
-    print('========================Exercício 2.4========================')
-    ex2_4 = MealyMachine(['x', 'X', '_', '.'], ['x', 'X', '_', '.', ''])
-
-    ex2_4.add_state(initial=True)  # q_0
-    ex2_4.add_state()  # q_1
-    ex2_4.add_state()  # q_2
-    ex2_4.add_state(accept=True)  # q_3
-
-    ex2_4.add_transition('q_0', 'q_1', 'x', 'X')
-    ex2_4.add_transition('q_0', 'q_1', 'X', 'X')
-    ex2_4.add_transition('q_0', 'q_2', '_', '_')
-
-    ex2_4.add_transition('q_1', 'q_1', 'x', 'x')
-    ex2_4.add_transition('q_1', 'q_1', 'X', 'x')
-    ex2_4.add_transition('q_1', 'q_1', '_', '_')
-    ex2_4.add_transition('q_1', 'q_3', '.', '.')
-
-    ex2_4.add_transition('q_2', 'q_1', 'x', 'X')
-    ex2_4.add_transition('q_2', 'q_1', 'X', 'X')
-    ex2_4.add_transition('q_2', 'q_2', '_', '_')
-    ex2_4.add_transition('q_2', 'q_3', '.', '.')
-
-    ex2_4.add_transition('q_3', 'q_1', 'x', 'X')
-    ex2_4.add_transition('q_3', 'q_1', 'X', 'X')
-    ex2_4.add_transition('q_3', 'q_2', '_', '_')
-
-    # Ex 2.4 [TEST]
-    # _, out2_4 = ex2_4.process_sequence('xXX_XxXx.')
-    # _, out2_4 = ex2_4.process_sequence('___xXX_XxXx.')
-    _, out2_4 = ex2_4.process_sequence(out2_3)
-
-    # Ex 2.5 Phrase sequences w/ one space between ----------------------------
-    print('========================Exercício 2.5========================')
-    ex2_5 = MealyMachine(['x', 'X', '_', '.'], ['x', 'X', '_', '.', ''])
-
-    ex2_5.add_state(initial=True)  # q_0
-    ex2_5.add_state()  # q_1
-    ex2_5.add_state()  # q_2
-    ex2_5.add_state(accept=True)  # q_3
-
-    ex2_5.add_transition('q_0', 'q_1', 'x', 'x')
-    ex2_5.add_transition('q_0', 'q_1', 'X', 'X')
-    ex2_5.add_transition('q_0', 'q_1', '_', '_')
-
-    ex2_5.add_transition('q_1', 'q_1', 'x', 'x')
-    ex2_5.add_transition('q_1', 'q_1', 'X', 'x')
-    ex2_5.add_transition('q_1', 'q_1', '_', '_')
-    ex2_5.add_transition('q_1', 'q_3', '.', '.')
-
-    ex2_5.add_transition('q_2', 'q_2', '_', '')
-    ex2_5.add_transition('q_2', 'q_1', 'x', 'x')
-    ex2_5.add_transition('q_2', 'q_1', 'X', 'X')
-    ex2_5.add_transition('q_2', 'q_3', '.', '.')
-
-    ex2_5.add_transition('q_3', 'q_1', 'x', '_x')
-    ex2_5.add_transition('q_3', 'q_1', 'X', '_X')
-    ex2_5.add_transition('q_3', 'q_2', '_', '_')
-
-    # Ex 2.5 [TEST]
-    # _, out2_5 = ex2_5.process_sequence('Xx_xx.Xxx_x.')
-    # _, out2_5 = ex2_5.process_sequence('Xx_xx.Xxx_x.___Xx.')
-    _, out2_5 = ex2_5.process_sequence(out2_4)
-
-    # Ex 2.6 Phrase sequences without empty phrases ---------------------------
-    print('========================Exercício 2.6========================')
-    ex2_6 = MealyMachine(['x', 'X', '_', '.'], ['x', 'X', '_', '.', ''])
-
-    ex2_6.add_state(initial=True)  # q_0
-    ex2_6.add_state()  # q_1
-    ex2_6.add_state()  # q_2
-    ex2_6.add_state(accept=True)  # q_3
-
-    ex2_6.add_transition('q_0', 'q_1', 'x', 'x')
-    ex2_6.add_transition('q_0', 'q_1', 'X', 'X')
-    ex2_6.add_transition('q_0', 'q_2', '_', '_')
-
-    ex2_6.add_transition('q_1', 'q_1', 'x', 'x')
-    ex2_6.add_transition('q_1', 'q_1', 'X', 'X')
-    ex2_6.add_transition('q_1', 'q_1', '_', '_')
-    ex2_6.add_transition('q_1', 'q_3', '.', '.')
-
-    ex2_6.add_transition('q_2', 'q_2', '_', '')
-    ex2_6.add_transition('q_2', 'q_1', 'x', 'x')
-    ex2_6.add_transition('q_2', 'q_1', 'X', 'X')
-    ex2_6.add_transition('q_2', 'q_1', '.', '')
-
-    ex2_6.add_transition('q_3', 'q_1', 'x', 'x')
-    ex2_6.add_transition('q_3', 'q_1', 'X', 'X')
-    ex2_6.add_transition('q_3', 'q_2', '_', '')
-
-    # Ex 2.6 [TEST]
-    # _, out2_6 = ex2_6.process_sequence('X._._Xx_x.')
-    _, out2_6 = ex2_6.process_sequence(out2_5)
+    # # Ex 2.1 Remove blanks between words --------------------------------------
+    # print('========================Exercício 2.1========================')
+    # ex2_1 = MealyMachine(['x', 'X', '_', '.'], ['x', 'X', '_', '.', ''])
+    #
+    # ex2_1.add_state(initial=True)  # q_0
+    # ex2_1.add_state()  # q_1
+    # ex2_1.add_state()  # q_2
+    # ex2_1.add_state(accept=True)  # q_3
+    # ex2_1.add_state()  # q_4
+    #
+    # ex2_1.add_transition('q_0', 'q_1', 'x', 'x')
+    # ex2_1.add_transition('q_0', 'q_1', 'X', 'X')
+    # ex2_1.add_transition('q_0', 'q_4', '_', '_')
+    # ex2_1.add_transition('q_1', 'q_1', 'x', 'x')
+    # ex2_1.add_transition('q_1', 'q_1', 'X', 'X')
+    # ex2_1.add_transition('q_1', 'q_2', '_', '_')
+    # ex2_1.add_transition('q_1', 'q_3', '.', '.')
+    # ex2_1.add_transition('q_2', 'q_2', '_', '')
+    # ex2_1.add_transition('q_2', 'q_1', 'x', 'x')
+    # ex2_1.add_transition('q_2', 'q_1', 'X', 'X')
+    # ex2_1.add_transition('q_2', 'q_3', '.', '.')
+    # ex2_1.add_transition('q_3', 'q_1', 'x', 'x')
+    # ex2_1.add_transition('q_3', 'q_1', 'X', 'X')
+    # ex2_1.add_transition('q_3', 'q_1', '_', '_')
+    # ex2_1.add_transition('q_4', 'q_4', '_', '_')
+    # ex2_1.add_transition('q_4', 'q_1', 'x', 'x')
+    # ex2_1.add_transition('q_4', 'q_1', 'X', 'X')
+    # ex2_1.add_transition('q_4', 'q_3', '.', '.')
+    #
+    # # Ex 2.1 [TEST]
+    # # _, out2_1 = ex2_1.process_sequence('x___xxx.')
+    # # _, out2_1 = ex2_1.process_sequence('x___xxx__x____xx.')
+    # _, out2_1 = ex2_1.process_sequence('_____x___xxx__x____xx____._.xX___x__.')
+    #
+    # # Ex 2.2 Remove blanks from the beginning ---------------------------------
+    # print('========================Exercício 2.2========================')
+    # ex2_2 = MealyMachine(['x', 'X', '_', '.'], ['x', 'X', '_', '.', ''])
+    #
+    # ex2_2.add_state(initial=True)  # q_0
+    # ex2_2.add_state()  # q_1
+    # ex2_2.add_state()  # q_2
+    # ex2_2.add_state(accept=True)  # q_3
+    #
+    # ex2_2.add_transition('q_0', 'q_1', 'x', 'x')
+    # ex2_2.add_transition('q_0', 'q_1', 'X', 'X')
+    # ex2_2.add_transition('q_0', 'q_2', '_', '')
+    #
+    # ex2_2.add_transition('q_1', 'q_1', 'x', 'x')
+    # ex2_2.add_transition('q_1', 'q_1', 'X', 'X')
+    # ex2_2.add_transition('q_1', 'q_1', '_', '_')
+    # ex2_2.add_transition('q_1', 'q_3', '.', '.')
+    #
+    # ex2_2.add_transition('q_2', 'q_2', '_', '')
+    # ex2_2.add_transition('q_2', 'q_1', 'x', 'x')
+    # ex2_2.add_transition('q_2', 'q_1', 'X', 'X')
+    # ex2_2.add_transition('q_2', 'q_3', '.', '.')
+    #
+    # ex2_2.add_transition('q_3', 'q_1', 'x', 'x')
+    # ex2_2.add_transition('q_3', 'q_1', 'X', 'X')
+    # ex2_2.add_transition('q_3', 'q_2', '_', '_')
+    #
+    # # Ex 2.2 [TEST]
+    # # _, out2_2 = ex2_2.process_sequence('___xxx.')
+    # # _, out2_2 = ex2_2.process_sequence('___xxx__x____xx.')
+    # _, out2_2 = ex2_2.process_sequence(out2_1)
+    #
+    # # Ex 2.3 Remove blanks from the end ---------------------------------------
+    # print('========================Exercício 2.3========================')
+    # ex2_3 = MealyMachine(['x', 'X', '_', '.'], ['x', 'X', '_', '.', ''])
+    #
+    # ex2_3.add_state(initial=True)  # q_0
+    # ex2_3.add_state()  # q_1
+    # ex2_3.add_state()  # q_2
+    # ex2_3.add_state(accept=True)  # q_3
+    # ex2_3.add_state(accept=True)  # q_4
+    #
+    # ex2_3.add_transition('q_0', 'q_1', 'x', 'x')
+    # ex2_3.add_transition('q_0', 'q_1', 'X', 'X')
+    # ex2_3.add_transition('q_0', 'q_1', '_', '_')
+    #
+    # ex2_3.add_transition('q_1', 'q_1', 'x', 'x')
+    # ex2_3.add_transition('q_1', 'q_1', 'X', 'X')
+    # ex2_3.add_transition('q_1', 'q_2', '_', '')
+    # ex2_3.add_transition('q_1', 'q_3', '.', '.')
+    #
+    # ex2_3.add_transition('q_2', 'q_2', '_', '')
+    # ex2_3.add_transition('q_2', 'q_4', '.', '.')
+    # ex2_3.add_transition('q_2', 'q_1', 'x', '_x')
+    # ex2_3.add_transition('q_2', 'q_1', 'X', '_X')
+    #
+    # ex2_3.add_transition('q_3', 'q_1', 'x', 'x')
+    # ex2_3.add_transition('q_3', 'q_1', 'X', 'X')
+    # ex2_3.add_transition('q_3', 'q_2', '_', '_')
+    # ex2_3.add_transition('q_3', 'q_4', '.', '.')
+    #
+    # ex2_3.add_transition('q_4', 'q_1', 'x', 'x')
+    # ex2_3.add_transition('q_4', 'q_1', 'X', 'X')
+    # ex2_3.add_transition('q_4', 'q_3', '_', '_')
+    #
+    # # Ex 2.3 [TEST]
+    # # _, out2_3 = ex2_3.process_sequence('x_xxxx__.')
+    # _, out2_3 = ex2_3.process_sequence(out2_2)
+    #
+    # # Ex 2.4 Title input  -----------------------------------------------------
+    # print('========================Exercício 2.4========================')
+    # ex2_4 = MealyMachine(['x', 'X', '_', '.'], ['x', 'X', '_', '.', ''])
+    #
+    # ex2_4.add_state(initial=True)  # q_0
+    # ex2_4.add_state()  # q_1
+    # ex2_4.add_state()  # q_2
+    # ex2_4.add_state(accept=True)  # q_3
+    #
+    # ex2_4.add_transition('q_0', 'q_1', 'x', 'X')
+    # ex2_4.add_transition('q_0', 'q_1', 'X', 'X')
+    # ex2_4.add_transition('q_0', 'q_2', '_', '_')
+    #
+    # ex2_4.add_transition('q_1', 'q_1', 'x', 'x')
+    # ex2_4.add_transition('q_1', 'q_1', 'X', 'x')
+    # ex2_4.add_transition('q_1', 'q_1', '_', '_')
+    # ex2_4.add_transition('q_1', 'q_3', '.', '.')
+    #
+    # ex2_4.add_transition('q_2', 'q_1', 'x', 'X')
+    # ex2_4.add_transition('q_2', 'q_1', 'X', 'X')
+    # ex2_4.add_transition('q_2', 'q_2', '_', '_')
+    # ex2_4.add_transition('q_2', 'q_3', '.', '.')
+    #
+    # ex2_4.add_transition('q_3', 'q_1', 'x', 'X')
+    # ex2_4.add_transition('q_3', 'q_1', 'X', 'X')
+    # ex2_4.add_transition('q_3', 'q_2', '_', '_')
+    #
+    # # Ex 2.4 [TEST]
+    # # _, out2_4 = ex2_4.process_sequence('xXX_XxXx.')
+    # # _, out2_4 = ex2_4.process_sequence('___xXX_XxXx.')
+    # _, out2_4 = ex2_4.process_sequence(out2_3)
+    #
+    # # Ex 2.5 Phrase sequences w/ one space between ----------------------------
+    # print('========================Exercício 2.5========================')
+    # ex2_5 = MealyMachine(['x', 'X', '_', '.'], ['x', 'X', '_', '.', ''])
+    #
+    # ex2_5.add_state(initial=True)  # q_0
+    # ex2_5.add_state()  # q_1
+    # ex2_5.add_state()  # q_2
+    # ex2_5.add_state(accept=True)  # q_3
+    #
+    # ex2_5.add_transition('q_0', 'q_1', 'x', 'x')
+    # ex2_5.add_transition('q_0', 'q_1', 'X', 'X')
+    # ex2_5.add_transition('q_0', 'q_1', '_', '_')
+    #
+    # ex2_5.add_transition('q_1', 'q_1', 'x', 'x')
+    # ex2_5.add_transition('q_1', 'q_1', 'X', 'x')
+    # ex2_5.add_transition('q_1', 'q_1', '_', '_')
+    # ex2_5.add_transition('q_1', 'q_3', '.', '.')
+    #
+    # ex2_5.add_transition('q_2', 'q_2', '_', '')
+    # ex2_5.add_transition('q_2', 'q_1', 'x', 'x')
+    # ex2_5.add_transition('q_2', 'q_1', 'X', 'X')
+    # ex2_5.add_transition('q_2', 'q_3', '.', '.')
+    #
+    # ex2_5.add_transition('q_3', 'q_1', 'x', '_x')
+    # ex2_5.add_transition('q_3', 'q_1', 'X', '_X')
+    # ex2_5.add_transition('q_3', 'q_2', '_', '_')
+    #
+    # # Ex 2.5 [TEST]
+    # # _, out2_5 = ex2_5.process_sequence('Xx_xx.Xxx_x.')
+    # # _, out2_5 = ex2_5.process_sequence('Xx_xx.Xxx_x.___Xx.')
+    # _, out2_5 = ex2_5.process_sequence(out2_4)
+    #
+    # # Ex 2.6 Phrase sequences without empty phrases ---------------------------
+    # print('========================Exercício 2.6========================')
+    # ex2_6 = MealyMachine(['x', 'X', '_', '.'], ['x', 'X', '_', '.', ''])
+    #
+    # ex2_6.add_state(initial=True)  # q_0
+    # ex2_6.add_state()  # q_1
+    # ex2_6.add_state()  # q_2
+    # ex2_6.add_state(accept=True)  # q_3
+    #
+    # ex2_6.add_transition('q_0', 'q_1', 'x', 'x')
+    # ex2_6.add_transition('q_0', 'q_1', 'X', 'X')
+    # ex2_6.add_transition('q_0', 'q_2', '_', '_')
+    #
+    # ex2_6.add_transition('q_1', 'q_1', 'x', 'x')
+    # ex2_6.add_transition('q_1', 'q_1', 'X', 'X')
+    # ex2_6.add_transition('q_1', 'q_1', '_', '_')
+    # ex2_6.add_transition('q_1', 'q_3', '.', '.')
+    #
+    # ex2_6.add_transition('q_2', 'q_2', '_', '')
+    # ex2_6.add_transition('q_2', 'q_1', 'x', 'x')
+    # ex2_6.add_transition('q_2', 'q_1', 'X', 'X')
+    # ex2_6.add_transition('q_2', 'q_1', '.', '')
+    #
+    # ex2_6.add_transition('q_3', 'q_1', 'x', 'x')
+    # ex2_6.add_transition('q_3', 'q_1', 'X', 'X')
+    # ex2_6.add_transition('q_3', 'q_2', '_', '')
+    #
+    # # Ex 2.6 [TEST]
+    # # _, out2_6 = ex2_6.process_sequence('X._._Xx_x.')
+    # _, out2_6 = ex2_6.process_sequence(out2_5)
 
     # # Ex 3.a all sentences of (0, 1)* where every “1” is followed by two 0’s.
     # print('========================Exercício 3.A========================')
@@ -672,34 +676,87 @@ if __name__ == '__main__':
     # print('After removing unreachable states')
     # print(rm_unreachable.states)
 
-    # # Test minimize DFA -------------------------------------------------------
-    # min_dfa = DFA(['a', 'b'])
-    #
-    # min_dfa.add_state(initial=True)  # q_0
-    # min_dfa.add_state()  # q_1
-    # min_dfa.add_state(accept=True)  # q_2
-    # min_dfa.add_state()  # q_3
-    # min_dfa.add_state(accept=True)  # q_4
-    # min_dfa.add_state(accept=True)  # q_5
-    # min_dfa.add_state()  # q_6
-    #
-    # min_dfa.add_transition('q_0', 'q_1', 'a')
-    # min_dfa.add_transition('q_0', 'q_6', 'b')
-    # min_dfa.add_transition('q_1', 'q_2', 'a')
-    # min_dfa.add_transition('q_1', 'q_3', 'b')
-    # min_dfa.add_transition('q_2', 'q_2', 'a')
-    # min_dfa.add_transition('q_2', 'q_3', 'b')
-    # min_dfa.add_transition('q_3', 'q_4', 'a')
-    # min_dfa.add_transition('q_3', 'q_2', 'b')
-    # min_dfa.add_transition('q_4', 'q_2', 'a')
-    # min_dfa.add_transition('q_4', 'q_3', 'b')
-    # min_dfa.add_transition('q_5', 'q_4', 'a')
-    # min_dfa.add_transition('q_5', 'q_5', 'b')
-    # min_dfa.add_transition('q_6', 'q_4', 'a')
-    # min_dfa.add_transition('q_6', 'q_4', 'b')
-    #
-    # # [TEST]
-    # print(min_dfa.states)
-    # min_dfa.minimize()
-    # print('After minimizing')
-    # print(min_dfa.states)
+    # Test minimize DFA -------------------------------------------------------
+    print('======================Exercício Minimização======================')
+    min_dfa = DFA(['a', 'b'])
+
+    min_dfa.add_state(initial=True)  # q_0
+    min_dfa.add_state()  # q_1
+    min_dfa.add_state(accept=True)  # q_2
+    min_dfa.add_state()  # q_3
+    min_dfa.add_state(accept=True)  # q_4
+    min_dfa.add_state(accept=True)  # q_5
+    min_dfa.add_state()  # q_6
+
+    min_dfa.add_transition('q_0', 'q_1', 'a')
+    min_dfa.add_transition('q_0', 'q_6', 'b')
+    min_dfa.add_transition('q_1', 'q_2', 'a')
+    min_dfa.add_transition('q_1', 'q_3', 'b')
+    min_dfa.add_transition('q_2', 'q_2', 'a')
+    min_dfa.add_transition('q_2', 'q_3', 'b')
+    min_dfa.add_transition('q_3', 'q_4', 'a')
+    min_dfa.add_transition('q_3', 'q_2', 'b')
+    min_dfa.add_transition('q_4', 'q_2', 'a')
+    min_dfa.add_transition('q_4', 'q_3', 'b')
+    min_dfa.add_transition('q_5', 'q_4', 'a')
+    min_dfa.add_transition('q_5', 'q_5', 'b')
+    min_dfa.add_transition('q_6', 'q_4', 'a')
+    min_dfa.add_transition('q_6', 'q_4', 'b')
+
+    # [TEST]
+    print(min_dfa.states)
+    min_dfa.minimize()
+    print('After minimizing')
+    print(min_dfa.states)
+
+    print('===========================Exercício 1.a==========================')
+    ex1_a = DFA(['a', 'b'])
+
+    ex1_a.add_state(initial=True)  # q_0
+    ex1_a.add_state()  # q_1
+    ex1_a.add_state()  # q_2
+    ex1_a.add_state(accept=True)  # q_3
+    ex1_a.add_state(accept=True)  # q_4
+
+    ex1_a.add_transition('q_0', 'q_1', 'a')
+    ex1_a.add_transition('q_1', 'q_2', 'b')
+    ex1_a.add_transition('q_1', 'q_3', 'a')
+    ex1_a.add_transition('q_2', 'q_4', 'a')
+    ex1_a.add_transition('q_2', 'q_2', 'b')
+    ex1_a.add_transition('q_3', 'q_3', 'a')
+    ex1_a.add_transition('q_3', 'q_2', 'b')
+    ex1_a.add_transition('q_4', 'q_2', 'b')
+    ex1_a.add_transition('q_4', 'q_3', 'a')
+
+    # [TEST]
+    print(ex1_a.states)
+    ex1_a.minimize()
+    print('After minimizing')
+    print(ex1_a.states)
+
+    print('===========================Exercício 2.b==========================')
+    ex1_b = DFA(['a', 'b'])
+
+    ex1_b.add_state(initial=True)  # q_0
+    ex1_b.add_state()  # q_1
+    ex1_b.add_state(accept=True)  # q_2
+    ex1_b.add_state(accept=True)  # q_3
+    ex1_b.add_state(accept=True)  # q_4
+    ex1_b.add_state()  # q_5
+
+    ex1_b.add_transition('q_0', 'q_1', 'a')
+    ex1_b.add_transition('q_0', 'q_2', 'b')
+    ex1_b.add_transition('q_1', 'q_0', 'a')
+    ex1_b.add_transition('q_1', 'q_3', 'b')
+    ex1_b.add_transition('q_2', 'q_4', 'a')
+    ex1_b.add_transition('q_2', 'q_5', 'b')
+    ex1_b.add_transition('q_3', 'q_5', 'b')
+    ex1_b.add_transition('q_3', 'q_4', 'a')
+    ex1_b.add_transition('q_4', 'q_4', 'a')
+    ex1_b.add_transition('q_4', 'q_5', 'b')
+
+    # [TEST]
+    print(ex1_b.states)
+    ex1_b.minimize()
+    print('After minimizing')
+    print(ex1_b.states)
