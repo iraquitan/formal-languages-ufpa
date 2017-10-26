@@ -224,9 +224,75 @@ class DFA(object):
                 not_chkd.remove(not_chkd[ni])
             else:
                 ni += 1
-        print('Pairs: {}'.format(pairs))
-        print('Not equivalent states: {}'.format([pairs[n] for n in not_equiv]))
-        print('Equivalent states: {}'.format([pairs[e] for e in equiv]))
+        # print('Pairs: {}'.format(pairs))
+        # print('Not equivalent states: {}'.format([pairs[n] for n in not_equiv]))
+        # print('Equivalent states: {}'.format([pairs[e] for e in equiv]))
+
+        equiv_pairs = [pairs[e] for e in equiv]
+        new_states = []
+        for i in range(len(equiv_pairs)):
+            cur_pair_i = equiv_pairs[i]
+            new_state = cur_pair_i
+            for j in range(len(equiv_pairs)):
+                if i != j:
+                    cur_pair_j = equiv_pairs[j]
+                    if len(cur_pair_i.intersection(cur_pair_j)) != 0:
+                        new_state = new_state.union(cur_pair_j)
+            if new_state not in new_states:
+                new_states.append(new_state)
+
+        # Update states:
+        old_states = self.states.copy()
+        # Create new states
+        for ns in new_states:
+            new_name = ','.join([s.name for s in ns])
+            is_initial = True if any([s.initial for s in ns]) else False
+            is_accept = True if any([s.accept for s in ns]) else False
+            for s in ns:
+                if s.initial:
+                    self.initial_state = None
+                self.states.remove(s)
+            self.add_state(new_name, initial=is_initial, accept=is_accept)
+
+        # Transitions
+        for ns in new_states:
+            transitions = set()
+            new_name = ','.join([s.name for s in ns])
+            new_state = self.get_state(new_name)
+            for s in ns:
+                for to_, symbol in s.transitions:
+                    ck = []
+                    for ns2 in new_states:
+                        new_name2 = ','.join([s.name for s in ns2])
+                        if to_.name in new_name2 and symbol not in [s for t, s in transitions]:
+                            transitions.add((new_name2, symbol))
+                        elif to_.name not in new_name2 and symbol not in [s for t, s in transitions]:
+                            ck.append(True)
+                    if all(ck) and len(ck) == len(new_states):
+                        transitions.add((to_.name, symbol))
+
+            for to_, symbol in transitions:
+                new_state.add_transition(to_, symbol)
+
+        ns_names = [','.join([s.name for s in ns]) for ns in new_states]
+        for s in self.states:
+            transitions = set()
+            if s.name in ns_names:
+                continue
+            for to_, symbol in s.transitions:
+                ck = []
+                for ns2 in new_states:
+                    new_name2 = ','.join([s.name for s in ns2])
+                    if to_.name in new_name2 and symbol not in [s for t, s in transitions]:
+                        transitions.add((new_name2, symbol))
+                    elif to_.name not in new_name2 and symbol not in [s for t, s in transitions]:
+                        ck.append(True)
+                if all(ck) and len(ck) == len(new_states):
+                    transitions.add((to_.name, symbol))
+            # remove transitions
+            s.transitions = []
+            for to_, symbol in transitions:
+                s.add_transition(to_, symbol)
 
 
 class MealyMachine(DFA):
@@ -322,6 +388,60 @@ class MealyMachine(DFA):
         
 
 if __name__ == '__main__':
+    # Ex 1.a Minimize DFA -----------------------------------------------------
+    print('===========================Exercício 1.a==========================')
+    ex1_a = DFA(['a', 'b'])
+
+    ex1_a.add_state(initial=True)  # q_0
+    ex1_a.add_state()  # q_1
+    ex1_a.add_state()  # q_2
+    ex1_a.add_state(accept=True)  # q_3
+    ex1_a.add_state(accept=True)  # q_4
+
+    ex1_a.add_transition('q_0', 'q_1', 'a')
+    ex1_a.add_transition('q_1', 'q_2', 'b')
+    ex1_a.add_transition('q_1', 'q_3', 'a')
+    ex1_a.add_transition('q_2', 'q_4', 'a')
+    ex1_a.add_transition('q_2', 'q_2', 'b')
+    ex1_a.add_transition('q_3', 'q_3', 'a')
+    ex1_a.add_transition('q_3', 'q_2', 'b')
+    ex1_a.add_transition('q_4', 'q_2', 'b')
+    ex1_a.add_transition('q_4', 'q_3', 'a')
+
+    # [TEST]
+    print(ex1_a.states)
+    ex1_a.minimize()
+    print('After minimizing')
+    print(ex1_a.states)
+
+    # Ex 1.b Minimize DFA -----------------------------------------------------
+    print('===========================Exercício 1.b==========================')
+    ex1_b = DFA(['a', 'b'])
+
+    ex1_b.add_state(initial=True)  # q_0
+    ex1_b.add_state()  # q_1
+    ex1_b.add_state(accept=True)  # q_2
+    ex1_b.add_state(accept=True)  # q_3
+    ex1_b.add_state(accept=True)  # q_4
+    ex1_b.add_state()  # q_5
+
+    ex1_b.add_transition('q_0', 'q_1', 'a')
+    ex1_b.add_transition('q_0', 'q_2', 'b')
+    ex1_b.add_transition('q_1', 'q_0', 'a')
+    ex1_b.add_transition('q_1', 'q_3', 'b')
+    ex1_b.add_transition('q_2', 'q_4', 'a')
+    ex1_b.add_transition('q_2', 'q_5', 'b')
+    ex1_b.add_transition('q_3', 'q_5', 'b')
+    ex1_b.add_transition('q_3', 'q_4', 'a')
+    ex1_b.add_transition('q_4', 'q_4', 'a')
+    ex1_b.add_transition('q_4', 'q_5', 'b')
+
+    # [TEST]
+    print(ex1_b.states)
+    ex1_b.minimize()
+    print('After minimizing')
+    print(ex1_b.states)
+
     # # Ex 2.1 Remove blanks between words --------------------------------------
     # print('========================Exercício 2.1========================')
     # ex2_1 = MealyMachine(['x', 'X', '_', '.'], ['x', 'X', '_', '.', ''])
@@ -676,87 +796,65 @@ if __name__ == '__main__':
     # print('After removing unreachable states')
     # print(rm_unreachable.states)
 
-    # Test minimize DFA -------------------------------------------------------
-    print('======================Exercício Minimização======================')
-    min_dfa = DFA(['a', 'b'])
+    # # Test minimize DFA -------------------------------------------------------
+    # print('======================Exercício Minimização======================')
+    # min_dfa = DFA(['a', 'b'])
+    #
+    # min_dfa.add_state(initial=True)  # q_0
+    # min_dfa.add_state()  # q_1
+    # min_dfa.add_state(accept=True)  # q_2
+    # min_dfa.add_state()  # q_3
+    # min_dfa.add_state(accept=True)  # q_4
+    # min_dfa.add_state(accept=True)  # q_5
+    # min_dfa.add_state()  # q_6
+    #
+    # min_dfa.add_transition('q_0', 'q_1', 'a')
+    # min_dfa.add_transition('q_0', 'q_6', 'b')
+    # min_dfa.add_transition('q_1', 'q_2', 'a')
+    # min_dfa.add_transition('q_1', 'q_3', 'b')
+    # min_dfa.add_transition('q_2', 'q_2', 'a')
+    # min_dfa.add_transition('q_2', 'q_3', 'b')
+    # min_dfa.add_transition('q_3', 'q_4', 'a')
+    # min_dfa.add_transition('q_3', 'q_2', 'b')
+    # min_dfa.add_transition('q_4', 'q_2', 'a')
+    # min_dfa.add_transition('q_4', 'q_3', 'b')
+    # min_dfa.add_transition('q_5', 'q_4', 'a')
+    # min_dfa.add_transition('q_5', 'q_5', 'b')
+    # min_dfa.add_transition('q_6', 'q_4', 'a')
+    # min_dfa.add_transition('q_6', 'q_4', 'b')
+    #
+    # # [TEST]
+    # print(min_dfa.states)
+    # min_dfa.minimize()
+    # print('After minimizing')
+    # print(min_dfa.states)
+    #
 
-    min_dfa.add_state(initial=True)  # q_0
-    min_dfa.add_state()  # q_1
-    min_dfa.add_state(accept=True)  # q_2
-    min_dfa.add_state()  # q_3
-    min_dfa.add_state(accept=True)  # q_4
-    min_dfa.add_state(accept=True)  # q_5
-    min_dfa.add_state()  # q_6
+    print('==========================Tutorials Point=========================')
+    tut = DFA(['0', '1'])
 
-    min_dfa.add_transition('q_0', 'q_1', 'a')
-    min_dfa.add_transition('q_0', 'q_6', 'b')
-    min_dfa.add_transition('q_1', 'q_2', 'a')
-    min_dfa.add_transition('q_1', 'q_3', 'b')
-    min_dfa.add_transition('q_2', 'q_2', 'a')
-    min_dfa.add_transition('q_2', 'q_3', 'b')
-    min_dfa.add_transition('q_3', 'q_4', 'a')
-    min_dfa.add_transition('q_3', 'q_2', 'b')
-    min_dfa.add_transition('q_4', 'q_2', 'a')
-    min_dfa.add_transition('q_4', 'q_3', 'b')
-    min_dfa.add_transition('q_5', 'q_4', 'a')
-    min_dfa.add_transition('q_5', 'q_5', 'b')
-    min_dfa.add_transition('q_6', 'q_4', 'a')
-    min_dfa.add_transition('q_6', 'q_4', 'b')
+    tut.add_state(name='a', initial=True)  # q_0
+    tut.add_state(name='b')  # q_1
+    tut.add_state(name='c', accept=True)  # q_2
+    tut.add_state(name='d', accept=True)  # q_3
+    tut.add_state(name='e', accept=True)  # q_4
+    tut.add_state(name='f')  # q_5
 
-    # [TEST]
-    print(min_dfa.states)
-    min_dfa.minimize()
-    print('After minimizing')
-    print(min_dfa.states)
-
-    print('===========================Exercício 1.a==========================')
-    ex1_a = DFA(['a', 'b'])
-
-    ex1_a.add_state(initial=True)  # q_0
-    ex1_a.add_state()  # q_1
-    ex1_a.add_state()  # q_2
-    ex1_a.add_state(accept=True)  # q_3
-    ex1_a.add_state(accept=True)  # q_4
-
-    ex1_a.add_transition('q_0', 'q_1', 'a')
-    ex1_a.add_transition('q_1', 'q_2', 'b')
-    ex1_a.add_transition('q_1', 'q_3', 'a')
-    ex1_a.add_transition('q_2', 'q_4', 'a')
-    ex1_a.add_transition('q_2', 'q_2', 'b')
-    ex1_a.add_transition('q_3', 'q_3', 'a')
-    ex1_a.add_transition('q_3', 'q_2', 'b')
-    ex1_a.add_transition('q_4', 'q_2', 'b')
-    ex1_a.add_transition('q_4', 'q_3', 'a')
-
-    # [TEST]
-    print(ex1_a.states)
-    ex1_a.minimize()
-    print('After minimizing')
-    print(ex1_a.states)
-
-    print('===========================Exercício 2.b==========================')
-    ex1_b = DFA(['a', 'b'])
-
-    ex1_b.add_state(initial=True)  # q_0
-    ex1_b.add_state()  # q_1
-    ex1_b.add_state(accept=True)  # q_2
-    ex1_b.add_state(accept=True)  # q_3
-    ex1_b.add_state(accept=True)  # q_4
-    ex1_b.add_state()  # q_5
-
-    ex1_b.add_transition('q_0', 'q_1', 'a')
-    ex1_b.add_transition('q_0', 'q_2', 'b')
-    ex1_b.add_transition('q_1', 'q_0', 'a')
-    ex1_b.add_transition('q_1', 'q_3', 'b')
-    ex1_b.add_transition('q_2', 'q_4', 'a')
-    ex1_b.add_transition('q_2', 'q_5', 'b')
-    ex1_b.add_transition('q_3', 'q_5', 'b')
-    ex1_b.add_transition('q_3', 'q_4', 'a')
-    ex1_b.add_transition('q_4', 'q_4', 'a')
-    ex1_b.add_transition('q_4', 'q_5', 'b')
+    tut.add_transition('a', 'b', '0')
+    tut.add_transition('a', 'c', '1')
+    tut.add_transition('b', 'a', '0')
+    tut.add_transition('b', 'd', '1')
+    tut.add_transition('c', 'e', '0')
+    tut.add_transition('c', 'f', '1')
+    tut.add_transition('d', 'e', '0')
+    tut.add_transition('d', 'f', '1')
+    tut.add_transition('e', 'e', '0')
+    tut.add_transition('e', 'f', '1')
+    tut.add_transition('f', 'f', '0')
+    tut.add_transition('f', 'f', '1')
 
     # [TEST]
-    print(ex1_b.states)
-    ex1_b.minimize()
+    print(tut.states)
+    tut.minimize()
     print('After minimizing')
-    print(ex1_b.states)
+    print(tut.states)
